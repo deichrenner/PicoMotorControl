@@ -9,18 +9,9 @@
 %  read                     Read data from the hid device
 %  write                    Write data to the hid device
 %
-%  getHIDInfoString         Get the relevant hid info from the hid device
-%  getManufacturersString   Get the manufacturers string from the hid device
-%  getProductString         Get the product string from the hid device
-%  getSerialNumberString    Get the serial number from the hid device 
-%  setNonBlocking           Set non blocking hid read
-%  init                     Init the JavaSocket (executed in open by default)
-%  exit                     Exit the JavaSocket
-%  error                    Return the error string 
-%  enumerate                Enumerate the connected hid devices
 %
 % Example::
-%           hid = JavaSocket(1,1684,0005,1024,1024)
+%           JS = JavaSocket(1,'192.168.2.2',23,1024,1024)
 %
 % Notes::
 % - Code still untested on Mac and Linux
@@ -38,7 +29,7 @@ classdef JavaSocket < handle
         % debug input
         debug = 0;
         % IP
-        IP = '';
+        IP = '192.168.2.2';
         % port
         port = 23;
         % read buffer size
@@ -110,7 +101,11 @@ classdef JavaSocket < handle
             import java.io.*;
 
             % open the JS interface
-            JS.handle = Socket(JS.IP, JS.port);
+            try 
+                JS.handle = Socket(JS.IP, JS.port);
+            catch ME
+                error(ME.identifier, 'JavaSocket: Connection Error: %s', ME.message);
+            end
             % set open flag
             JS.isOpen = 1;
         end
@@ -121,7 +116,7 @@ classdef JavaSocket < handle
             % JS.close() closes the connection to a JS device.
             
             if JS.debug > 0
-                fprintf('JSapi close\n');
+                fprintf('JavaSocket close\n');
             end
             if JS.isOpen == 1
                 % close the connect
@@ -139,41 +134,45 @@ classdef JavaSocket < handle
             % there is a mismach between the buffer size and the reported
             % number of bytes written.
             
-            if hid.debug > 0
-                fprintf('hidapi write\n');
+            if JS.debug > 0
+                fprintf('JavaSocket write\n');
             end
+            
+            % import relevant java stack
+            import java.net.*;
+            import java.io.*;
+            
             % write the message
             out = JS.handle.getOutputStream;
             out.write(wmsg);
-            % check the response
-            if res ~= length(wmsg)
-                fprintf('JavaSocket write error: wrote %d, sent %d\n',(length(wmsg)-1),res); 
-            end
+            out.close();
         end
 
 
         function rmsg = read(JS)
-            %hidapi.rmsg Read from hid object
+            %JavaSocket.rmsg Read from network object
             %
-            % rmsg = hid.read() reads from a hid device and returns the
+            % rmsg = JS.read() reads from a network device and returns the
             % read bytes. Will print an error if no data was read.
  
-            if hid.debug > 0
-                fprintf('hidapi read\n');
+            if JS.debug > 0
+                fprintf('JavaSocket read\n');
             end
-            % read buffer of nReadBuffer length
-            buffer = zeros(1,hid.nReadBuffer);
-            % create a unit8 pointer 
-            pbuffer = libpointer('uint8Ptr', uint8(buffer));
-            % read data from HID deivce
-            [res,h] = calllib(hid.slib,'hid_read_timeout',hid.handle, ...
-                pbuffer,uint64(length(buffer)),1000);
+            
+            % import relevant java stack
+            import java.net.*;
+            import java.io.*;
+            
+            % read message
+            in = BufferedReader(InputStreamReader(JS.handle.getInputStream));
+            rmsg = in.readLine();
+            
             % check the response
-            if res == 0
-               fprintf('hidapi read returned no data\n');
+            if rmsg == ''
+               fprintf('JavaStack read returned no data\n');
             end
-            % return the string value
-            rmsg = pbuffer.Value;
+            % close Reader
+            in.close();
         end
 
         
