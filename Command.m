@@ -4,95 +4,25 @@
 % Command                   Constructor, creates an empty command object
 % delete                    Destructor, clears the command object
 %
-% addSequenceByte           Adds a sequence byte to the command object
-% addLength                 Add the length of the msg to the front of the command object
-% addSystemCommand          Add a system command to the command object
 % addCommand                Add a command directly to the command object
 %
 % clear                     Clear the command msg
 % display                   Display the command msg (decimal)
-% displayHex                Display the command msg (hex)
 %
 % Notes::
-% - Refer to the DLPC900 Programmer's guide for a more detailed
+% - Refer to the NewFocus 8752 manual for a more detailed
 % description of the commands.
 %
 % Example::
 %                   cmd = Command();
 %                   cmd.addLength();
 %
-% This toolbox is based on the hidapi implementation written by Peter Corke
-% in the framework of his robotics toolbox. The original source code can be
-% found on http://www.petercorke.com/Robotics_Toolbox.html.
-% 
 % Author: Klaus Hueck (e-mail: khueck (at) physik (dot) uni-hamburg (dot) de)
 % Version: 0.0.1alpha
 % Changes tracker:  28.01.2016  - First version
 % License: GPL v3
 
 classdef Command < handle
-    
-    %% Communications format (DLPC900 Programmer's guide):
-    %
-    %       C900 Command Bytes:
-    %   ,------,------,------,------,------,------,------,-------,
-    %   |Byte 0|Byte 1|Byte 2|Byte 3|Byte 4|Byte 5|      |Byte 64|
-    %   '------'------'------'------'------'------'------'-------'
-    %
-    %   Byte 0:     Report ID = 0
-    %
-    %   Byte 1:     Flag byte where:
-    %                   Bits 2:0 are set to 0x0 for regular DLPC900 operation
-    %                   Bit 6 is set to 0x1 to indicate the host wants a reply from the device
-    %                   Bit 7 is set to 0x1 to indicate a read transaction
-    %   #define     COMMAND_READ
-    %   #define     COMMAND_REPLY
-    %
-    %   Byte 2:     Sequence byte: The sequence byte can be a rolling counter.
-    %               It is used primarily when the host wants a response from the DLPC900.
-    %               The DLPC900 will respond with the same sequence byte that the host
-    %               sent. The host can then match the sequence byte from the command it
-    %               sent with the sequence byte from the DLPC900 response.
-    %
-    %   Byte 3-4:   Length: Two byte length denotes the number of data bytes in the sequence and
-    %               excludes the number of bytes in steps 1 through 4. It denotes the total number
-    %               of bytes sent in steps 5 (command bytes).
-    %
-    %   Byte 5-6:   System Command. See DLPC900 Programmer's guide
-    %
-    %   Byte 7-64:  Dependends on the System Command
-    %
-    %       Example of C900 read operation (**)
-    %   ,-----------,------,----------,-----------,---------------,
-    %   | REPORT ID | FLAG | SEQUENCE | LENGTH(*) |    DATA(*)    |
-    %   |   BYTE    | BYTE |   BYTE   |           |               |
-    %   |-----------'------'----------'-----------'---------------|
-    %   |    00     |  C0  |    11    |   02 00   |     00 11     |
-    %   '-----------'------'----------'-----------'---------------'
-    %
-    %   Once the host transmits the data over the USB interface, the DLPC900 will respond to the Read
-    %   operation by placing the response data in its internal buffer. The host must then perform a HID driver
-    %   read operation. The table below shows the response data sent back from the DLPC900.
-    %       (a) Report ID: Always set to 0.
-    %       (b) Flag byte: The same as was sent plus error bit. The host may check the error flag (bit 5) as follows.
-    %           (i)  0 = No errors.
-    %           (ii) 1 = Command not found or command failed.
-    %       (c) Sequence byte: The same as was sent. The host may match the sent sequence byte with the
-    %           response sequence byte.
-    %       (d) Length: Number of data bytes. The host must assemble the data according to the definition of the
-    %           command.
-    %
-    %       Example of C900 read response (**)
-    %   ,-----------,------,----------,-----------,-----------------------,
-    %   | REPORT ID | FLAG | SEQUENCE | LENGTH(*) |         DATA(*)       |
-    %   |   BYTE    | BYTE |   BYTE   |           |                       |
-    %   |-----------'------'----------'-----------'-----------------------|
-    %   |    00     |  C0  |    11    |   06 00   |    FF 01 FF 01 FF 01  |
-    %   '-----------'------'----------'-----------'-----------------------'
-    %
-    %   (*)  Least significant bit precedes the most significant bit for
-    %        each parameter!
-    %   (**) All values are in HEX notation!
     
     properties
         msg             % message to be sent

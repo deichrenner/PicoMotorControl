@@ -26,26 +26,28 @@ classdef JavaSocket < handle
     properties
         % connection handle
         handle
+        % output stream 
+        out
+        % input stream 
+        in
+        % buffered input stream 
+        din
         % debug input
         debug = 0;
         % IP
         IP = '192.168.2.2';
         % port
         port = 23;
-        % read buffer size
-        nReadBuffer = 1024;
-        % write buffer size
-        nWriteBuffer = 1024;
         % report state
         isOpen = 0;
     end
     
     methods
         
-        function JS = JavaSocket(debug,IP,port,nReadBuffer,nWriteBuffer)
+        function JS = JavaSocket(debug,IP,port)
             %JavaSocket.JavaSocket Create a Java socket stack interface object
             % 
-            % JS = JavaSocket(debug,IP,port,nReadBuffer,nWriteBuffer)
+            % JS = JavaSocket(debug,IP,port)
             % is an object which initialises the JavaSocket from the corresponding
             % Java library. Other parameters are also initialised. 
             %
@@ -53,8 +55,6 @@ classdef JavaSocket < handle
             % - debug is a flag specifying output printing (0 or 1).
             % - IP is the IP of the network device.
             % - port is the port of the network device.
-            % - nReadBuffer is the length of the read buffer.
-            % - nWriteBuffer is the length of the write buffer.
             
             JS.debug = debug;
             if JS.debug > 0
@@ -63,8 +63,6 @@ classdef JavaSocket < handle
             if nargin > 1
                 JS.IP = IP;
                 JS.port = port;
-                JS.nReadBuffer = nReadBuffer;
-                JS.nWriteBuffer = nWriteBuffer;
             end
         end
         
@@ -103,6 +101,9 @@ classdef JavaSocket < handle
             % open the JS interface
             try 
                 JS.handle = Socket(JS.IP, JS.port);
+                JS.out = PrintWriter(JS.handle.getOutputStream, true);
+                JS.in = JS.handle.getInputStream;
+                JS.din = DataInputStream(JS.in);
             catch ME
                 error(ME.identifier, 'JavaSocket: Connection Error: %s', ME.message);
             end
@@ -120,6 +121,8 @@ classdef JavaSocket < handle
             end
             if JS.isOpen == 1
                 % close the connect
+                close(JS.in);
+                close(JS.out);
                 close(JS.handle);
                 % clear open flag
                 JS.isOpen = 0;
@@ -138,14 +141,8 @@ classdef JavaSocket < handle
                 fprintf('JavaSocket write\n');
             end
             
-            % import relevant java stack
-            import java.net.*;
-            import java.io.*;
-            
             % write the message
-            out = JS.handle.getOutputStream;
-            out.write(wmsg);
-            out.close();
+            JS.out.println(wmsg);
         end
 
 
@@ -159,22 +156,25 @@ classdef JavaSocket < handle
                 fprintf('JavaSocket read\n');
             end
             
-            % import relevant java stack
-            import java.net.*;
-            import java.io.*;
+            % read data from the socket - wait a short time first
+            pause(0.1);
+            bytes_available = JS.in.available;
+            if JS.debug > 0
+                fprintf(1, 'Reading %str    d bytes\n', bytes_available);
+            end
             
-            % read message
-            in = BufferedReader(InputStreamReader(JS.handle.getInputStream));
-            rmsg = in.readLine();
+            message = zeros(1, bytes_available, 'uint8');
+            for i = 1:bytes_available
+                message(i) = JS.din.readByte;
+            end    
+            
+            rmsg = message;
             
             % check the response
-            if rmsg == ''
-               fprintf('JavaStack read returned no data\n');
+            if isempty(rmsg)
+                fprintf('JavaStack read returned no data\n');
             end
-            % close Reader
-            in.close();
         end
-
         
     end 
 end

@@ -29,11 +29,9 @@ classdef ethPicoMotorIO < PicoMotorIO
         % debug input
         debug = 0;
         % IP
-        IP = '';
-        % read buffer size 
-        nReadBuffer = 1024;
-        % write buffer size equals the size of the read buffer
-        nWriteBuffer = 1024;
+        IP = '192.168.2.2';
+        % port 
+        port = 23;
     end
     
     methods
@@ -48,15 +46,6 @@ classdef ethPicoMotorIO < PicoMotorIO
             % - Can take one parameter debug which is a flag specifying
             % output printing (0 or 1).
             
-            % make all hidapi relevant functions available to usbDMDIO.m
-            libDir = strsplit(mfilename('fullpath'), filesep);
-            % fix fullfile file separation for linux systems
-            firstsep = '';
-            if (isunix == 1)
-                firstsep = '/';
-            end
-            addpath(fullfile(firstsep, libDir{1:end-1}, 'hidapi'));
-            
             if nargin == 0
                 PMIO.debug = 0;
             end
@@ -67,7 +56,7 @@ classdef ethPicoMotorIO < PicoMotorIO
                 fprintf('ethPicoMotorIO init\n');
             end
             % create the eth handle 
-            PMIO.handle = hidapi(PMIO.debug,PMIO.vendorID,PMIO.productID,PMIO.nReadBuffer,PMIO.nWriteBuffer);
+            PMIO.handle = JavaSocket(PMIO.debug, PMIO.IP, PMIO.port);
             % open the PicoMotorIO connection
             PMIO.open;
         end
@@ -123,10 +112,10 @@ classdef ethPicoMotorIO < PicoMotorIO
             end 
             % read from the ethernet handle
             rmsg = PMIO.handle.read;
-            % get the number of read bytes
-            nLength = double(typecast(uint8(rmsg(3:4)),'uint16'));
-            % format the read message (2 byte length plus message)
-            rmsg = rmsg(1:nLength+4);
+            % cast to char and replace '>' by ''
+            rmsg = strrep(char(rmsg), '>', '');
+            % split by line
+            rmsg = strsplit(rmsg, '\n');
         end
         
         function write(PMIO,wmsg)
@@ -137,13 +126,13 @@ classdef ethPicoMotorIO < PicoMotorIO
             %
             % Notes::
             % - wmsg is the data to be written to the PicoMotor via 
-            % ethernet in uint8 format.
+            % ethernet in char format.
             
             if PMIO.debug > 0
                 fprintf('ethPicoMotorIO write\n');
             end 
             % write to the ethernet handle
-            PMIO.handle.write(wmsg,0);
+            PMIO.handle.write(wmsg);
         end
     end 
 end
