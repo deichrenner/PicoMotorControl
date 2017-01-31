@@ -29,7 +29,7 @@ classdef ethPicoMotorIO < PicoMotorIO
         % debug input
         debug = 0;
         % IP
-        IP = '192.168.2.2';
+        IP = '192.168.10.2';
         % port 
         port = 23;
     end

@@ -97,7 +97,7 @@ classdef PicoMotor < handle
             PM.conn.write(cmd);
             
             if PM.debug > 0
-                disp(['sent: [' msg ']']);
+                disp(['sent: [' cmd ']']);
             end
         end
         
@@ -134,8 +134,9 @@ classdef PicoMotor < handle
             %           PM.rel(10)
             
             
-            cmd = ['REL a1=' num2str(steps,1)];
+            cmd = ['REL a1=' num2str(steps)];
             PM.send(cmd);
+            PM.receive();
             
         end
         
@@ -161,6 +162,7 @@ classdef PicoMotor < handle
             
             cmd = 'STO a1';
             PM.send(cmd);
+            PM.receive();
             
         end
         
@@ -178,6 +180,7 @@ classdef PicoMotor < handle
             
             cmd = ['RES ' upper(res)];
             PM.send(cmd);
+            PM.receive();
             
         end
         
@@ -195,9 +198,13 @@ classdef PicoMotor < handle
             if d == 'f'
                 cmd = 'FOR a1';
                 PM.send(cmd);
+                rmsg = PM.receive();
+                disp(rmsg);
             elseif d == 'b'
                 cmd = 'REV a1';
                 PM.send(cmd);
+                rmsg = PM.receive();
+                disp(rmsg);
             else
                 disp('Invalid input argument, f and r are allowed');
             end
