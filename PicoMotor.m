@@ -19,8 +19,8 @@
 %           PM = PicoMotor('debug', 1)
 %
 % Author: Klaus Hueck (e-mail: khueck (at) physik (dot) uni-hamburg (dot) de)
-% Version: 0.0.1alpha
-% Changes tracker:  28.01.2016  - First version
+% Version: 0.1
+% Changes tracker:  26.02.2017  - First version
 % License: GPL v3
 
 classdef PicoMotor < handle
